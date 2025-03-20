@@ -499,8 +499,8 @@ END:VCARD`
         />
       </div>
       <div className="w-full max-w-2xl">
-        <h1 className="text-6xl font-bold mb-2 text-center text-zinc-200">
-          Gerador de QR Code
+        <h1 className="text-4xl md:text-6xl font-bold mb-2 text-center text-zinc-200">
+          Gerador de <span className="whitespace-nowrap">QR Code</span>
         </h1>
         <p className="text-center text-zinc-100 mb-8">
           Sem truques, sem período de teste, sem necessidade de login. Apenas um
@@ -605,7 +605,7 @@ END:VCARD`
 
           <Button
             type="submit"
-            className="w-full bg-purple-600 text-white py-2 px-4 rounded-md hover:bg-purple-700 transition-colors cursor-pointer"
+            className="w-full bg-purple-800 text-white py-2 px-4 rounded-md hover:bg-purple-700 transition-colors cursor-pointer"
           >
             Gerar QR Code
           </Button>
