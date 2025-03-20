@@ -485,7 +485,7 @@ END:VCARD`
   }
 
   return (
-    <main className="relative flex min-h-screen flex-col items-center p-8 bg-gray-950 z-10">
+    <main className="relative flex min-h-screen flex-col items-center justify-center p-8 bg-gray-950 z-10">
       <div
         aria-hidden="true"
         className="absolute inset-x-0 -top-40 -z-10 transform-gpu overflow-hidden blur-3xl sm:-top-80"
