@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Montserrat } from 'next/font/google'
 import './globals.css'
+import ClientLayout from './client-layout'
 
 export const metadata: Metadata = {
   title: 'Gerador de QR Code',
@@ -17,7 +18,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR">
-      <body className={montserrat.className}>{children}</body>
+      <body className={montserrat.className}>
+        <ClientLayout>{children}</ClientLayout>
+      </body>
     </html>
   )
 }
