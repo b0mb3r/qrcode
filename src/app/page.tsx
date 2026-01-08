@@ -12,7 +12,7 @@ import Link from 'next/link'
 import { QRCodeSVG } from 'qrcode.react'
 import { useRef, useState } from 'react'
 
-type ContentType = 'url' | 'vcard' | 'text' | 'email' | 'sms' | 'wifi'
+type ContentType = 'url' | 'vcard' | 'text' | 'email' | 'sms' | 'wifi' | 'pix'
 
 export default function Home() {
   const [contentType, setContentType] = useState<ContentType>('url')
@@ -52,9 +52,89 @@ export default function Home() {
   const [wifiPassword, setWifiPassword] = useState('')
   const [wifiEncryption, setWifiEncryption] = useState('WPA')
 
+  // Pix
+  const [pixKey, setPixKey] = useState('')
+  const [pixKeyType, setPixKeyType] = useState('email')
+  const [pixAmount, setPixAmount] = useState('')
+  const [pixMessage, setPixMessage] = useState('')
+
   const handleContentTypeChange = (type: ContentType) => {
     setContentType(type)
     setIsGenerated(false)
+  }
+
+  const generatePixPayload = (): string => {
+    if (!pixKey) return ''
+
+    if (pixKeyType === 'phone') {
+      // Format phone number to E.164 format
+      if (!pixKey.startsWith('+')) {
+        const pixKeyFormated = `+55${pixKey.replace(/\D/g, '')}` // Assuming Brazil country code
+        setPixKey(pixKeyFormated)
+      }
+    }
+
+    // CRC16 calculation for PIX
+    const crc16 = (str: string): string => {
+      let crc = 0xffff
+      for (let i = 0; i < str.length; i++) {
+        crc ^= str.charCodeAt(i) << 8
+        for (let j = 0; j < 8; j++) {
+          if (crc & 0x8000) {
+            crc = (crc << 1) ^ 0x1021
+          } else {
+            crc = crc << 1
+          }
+        }
+      }
+      return (crc & 0xffff).toString(16).toUpperCase().padStart(4, '0')
+    }
+    // Format field with ID + length + value
+    const formatField = (id: string, value: string): string => {
+      const length = value.length.toString().padStart(2, '0')
+      return id + length + value
+    }
+
+    let payload = ''
+
+    // Payload Format Indicator
+    payload += formatField('00', '01')
+
+    // Point of Initiation Method (12 = static, 11 = dynamic)
+    payload += formatField('01', '12')
+
+    // Merchant Account Information
+    let merchantInfo = ''
+    merchantInfo += formatField('00', 'BR.GOV.BCB.PIX')
+    merchantInfo += formatField('01', pixKey)
+    payload += formatField('26', merchantInfo)
+
+    // Merchant Category Code
+    payload += formatField('52', '0000')
+
+    // Transaction Currency (986 = BRL)
+    payload += formatField('53', '986')
+
+    // Transaction Amount (if specified)
+    if (pixAmount && Number.parseFloat(pixAmount) > 0) {
+      payload += formatField('54', Number.parseFloat(pixAmount).toFixed(2))
+    }
+
+    // Country Code
+    payload += formatField('58', 'BR')
+
+    // Additional Data Field Template (optional message)
+    if (pixMessage) {
+      const additionalData = formatField('05', pixMessage.substring(0, 25))
+      payload += formatField('62', additionalData)
+    }
+
+    // CRC16
+    payload += '6304'
+    const checksum = crc16(payload)
+    payload += checksum
+
+    return payload
   }
 
   const generateQRCodeValue = (): string => {
@@ -81,6 +161,8 @@ END:VCARD`
         return `sms:${phoneNumber}?body=${encodeURIComponent(smsMessage)}`
       case 'wifi':
         return `WIFI:S:${wifiSsid};T:${wifiEncryption};P:${wifiPassword};;`
+      case 'pix':
+        return generatePixPayload()
       default:
         return ''
     }
@@ -459,6 +541,95 @@ END:VCARD`
             </div>
           </>
         )
+      case 'pix':
+        return (
+          <>
+            <div className="mb-4">
+              <Label
+                htmlFor="pixKeyType"
+                className="block text-gray-700 font-medium mb-2"
+              >
+                Tipo de Chave PIX
+              </Label>
+              <select
+                id="pixKeyType"
+                value={pixKeyType}
+                onChange={e => setPixKeyType(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="email">Email</option>
+                <option value="cpf">CPF</option>
+                <option value="cnpj">CNPJ</option>
+                <option value="phone">Telefone</option>
+                <option value="random">Chave Aleatória</option>
+              </select>
+            </div>
+            <div className="mb-4">
+              <Label
+                htmlFor="pixKey"
+                className="block text-gray-700 font-medium mb-2"
+              >
+                Chave PIX
+              </Label>
+              <Input
+                type="text"
+                id="pixKey"
+                placeholder={
+                  pixKeyType === 'email'
+                    ? 'exemplo@email.com'
+                    : pixKeyType === 'cpf'
+                      ? '000.000.000-00'
+                      : pixKeyType === 'cnpj'
+                        ? '00.000.000/0000-00'
+                        : pixKeyType === 'phone'
+                          ? '31988214369'
+                          : 'Chave aleatória'
+                }
+                value={pixKey}
+                onChange={e => setPixKey(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <Label
+                  htmlFor="pixAmount"
+                  className="block text-gray-700 font-medium mb-2"
+                >
+                  Valor (R$) - Opcional
+                </Label>
+                <Input
+                  type="number"
+                  id="pixAmount"
+                  placeholder="0.00"
+                  step="0.01"
+                  min="0"
+                  value={pixAmount}
+                  onChange={e => setPixAmount(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <Label
+                  htmlFor="pixMessage"
+                  className="block text-gray-700 font-medium mb-2"
+                >
+                  Mensagem - Opcional
+                </Label>
+                <Input
+                  type="text"
+                  id="pixMessage"
+                  placeholder="Pagamento"
+                  value={pixMessage}
+                  onChange={e => setPixMessage(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+          </>
+        )
       default:
         return null
     }
@@ -479,6 +650,8 @@ END:VCARD`
         return <Icons.sms />
       case 'wifi':
         return <Icons.wifi />
+      case 'pix':
+        return <Icons.pix />
       default:
         return null
     }
@@ -518,7 +691,7 @@ END:VCARD`
             >
               Tipo de Conteúdo
             </Label>
-            <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
+            <div className="grid grid-cols-4 md:grid-cols-7 gap-2">
               {(
                 [
                   'url',
@@ -527,6 +700,7 @@ END:VCARD`
                   'email',
                   'sms',
                   'wifi',
+                  'pix',
                 ] as ContentType[]
               ).map(type => (
                 <button
@@ -547,6 +721,7 @@ END:VCARD`
                     {type === 'email' && 'Email'}
                     {type === 'sms' && 'SMS'}
                     {type === 'wifi' && 'WiFi'}
+                    {type === 'pix' && 'PIX'}
                   </span>
                 </button>
               ))}

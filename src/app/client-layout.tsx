@@ -41,26 +41,27 @@ export default function ClientLayout({
             src={`https://www.googletagmanager.com/gtag/js?id=${GTAG}`}
           />
           <Script
-            id="google-analytics"
             strategy="afterInteractive"
-            dangerouslySetInnerHTML={{
-              __html: `
-                window.dataLayer = window.dataLayer || [];
-                function gtag(){dataLayer.push(arguments);}
-                gtag('js', new Date());
-                gtag('config', '${GTAG}', {
-                  anonymize_ip: true,
-                  cookie_flags: 'SameSite=None;Secure',
-                  cookie_expires: 7776000
-                });
-              `,
-            }}
+            src="/scripts/google-analytics.js"
+            // id="google-analytics"
+            // strategy="afterInteractive"
+            // dangerouslySetInnerHTML={{
+            //   __html: `
+            //     window.dataLayer = window.dataLayer || [];
+            //     function gtag(){dataLayer.push(arguments);}
+            //     gtag('js', new Date());
+            //     gtag('config', '${GTAG}', {
+            //       anonymize_ip: true,
+            //       cookie_flags: 'SameSite=None;Secure',
+            //       cookie_expires: 7776000
+            //     });
+            //   `,
+            // }}
           />
         </>
       )}
       {children}
 
-      {console.log(consentGiven)}
       {consentGiven === null && (
         <ConsentBanner onAccept={handleAccept} onDecline={handleDecline} />
       )}
